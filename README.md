@@ -12,13 +12,13 @@
 
 | 項目 | 内容 |
 |---|---|
-| Laravel | 12.71.0（composer.lockに記録された依存関係を使用） |
-| PHP（確認時） | 8.2.12／XAMPPのCLI版。公開前にセキュリティ修正版への更新を確認する |
+| Laravel | 12.71.0 |
+| PHP（確認時） | 8.2.12／XAMPPのCLI版|
 | Composer（確認時） | 2.11.1 |
 | Git（確認時） | 2.55.0.windows.5 |
-| 初期確認用DB | SQLite。製品用DBの選定とは別で、PostgreSQL案は未確定 |
+| 初期確認用DB | SQLite |
 | 動作確認 | コピー元・チーム用フォルダーの両方でLaravel初期画面が表示 |
-| 初期テスト | 2 passed（2 assertions）。業務機能のテストではない |
+| 初期テスト | 2 passed（2 assertions）|
 
 ## Windows PowerShellでの初回セットアップ
 
