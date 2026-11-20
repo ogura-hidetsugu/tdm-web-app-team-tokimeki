@@ -16,6 +16,15 @@ class FamilyController extends Controller
     public function index()
     {
         $group = Group::first();
+
+        if (!$group) {
+            $members = collect();
+            $entries = collect();
+            $activities = [];
+            $inviteCode = 'TOKI-DEFAULT';
+            return view('family.index', compact('group', 'members', 'entries', 'activities', 'inviteCode'));
+        }
+
         $members = Membership::where('group_id', $group->id)->with('user')->get();
 
         // 共有買い物リスト（最新の動き）

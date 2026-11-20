@@ -8,6 +8,7 @@ use App\Models\ShoppingEntry;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class ShoppingController extends Controller
@@ -15,10 +16,20 @@ class ShoppingController extends Controller
     public function index(Request $request)
     {
         $group = Group::first();
-        $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
 
         $selectedStore = $request->query('store', 'all');
         $sortByStore = $request->boolean('sort_by_store', false);
+
+        if (!$group) {
+            $stores = collect();
+            $items = collect();
+            $purchasedItems = collect();
+            $counts = ['all' => 0];
+
+            return view('shopping.index', compact('items', 'purchasedItems', 'stores', 'selectedStore', 'sortByStore', 'counts', 'group'));
+        }
+
+        $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
 
         $query = ShoppingEntry::where('group_id', $group->id)
             ->where('status', '未購入')
@@ -66,6 +77,15 @@ class ShoppingController extends Controller
     public function create()
     {
         $group = Group::first();
+
+        if (!$group) {
+            $stores = collect();
+            $entries = collect();
+            $addedCount = 0;
+
+            return view('shopping.create', compact('entries', 'stores', 'addedCount', 'group'));
+        }
+
         $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
 
         // 現在登録されている未購入品一覧（画像2の上部リスト）
@@ -88,7 +108,18 @@ class ShoppingController extends Controller
         ])->validate();
 
         $group = Group::first();
+        if (!$group) {
+            $group = Group::create(['name' => 'ときめきファミリー']);
+        }
+
         $user = User::first();
+        if (!$user) {
+            $user = User::create([
+                'display_name' => 'きょうか (わたし)',
+                'email' => 'me@tokimeki.local',
+                'password' => Hash::make('password'),
+            ]);
+        }
 
         // store_idが未指定の場合は「未設定」店舗を探す
         $storeId = $request->input('store_id');
@@ -121,7 +152,7 @@ class ShoppingController extends Controller
 
         if ($entry->status === '未購入') {
             $entry->status = '購入済';
-            $entry->purchased_by_user_id = $user->id;
+            $entry->purchased_by_user_id = $user ? $user->id : null;
             $entry->purchased_at = now();
             $msg = '「' . $entry->name . '」を購入済みにしました！';
         } else {

@@ -16,8 +16,15 @@ class ItemController extends Controller
     public function index(Request $request)
     {
         $group = Group::first();
-        $categories = Category::where('group_id', $group->id)->orderBy('sort_order')->get();
         $selectedCategory = $request->query('category', 'all');
+
+        if (!$group) {
+            $categories = collect();
+            $items = collect();
+            return view('items.index', compact('items', 'categories', 'selectedCategory', 'group'));
+        }
+
+        $categories = Category::where('group_id', $group->id)->orderBy('sort_order')->get();
 
         $query = Item::where('group_id', $group->id)
             ->whereNull('archived_at')
@@ -37,6 +44,13 @@ class ItemController extends Controller
     public function create()
     {
         $group = Group::first();
+
+        if (!$group) {
+            $categories = collect();
+            $stores = collect();
+            return view('items.create', compact('categories', 'stores', 'group'));
+        }
+
         $categories = Category::where('group_id', $group->id)->orderBy('sort_order')->get();
         $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
 
