@@ -19,10 +19,21 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'display_name',
         'email',
         'password',
+        'is_active',
     ];
+
+    public function memberships()
+    {
+        return $this->hasMany(Membership::class);
+    }
+
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'memberships');
+    }
 
     /**
      * The attributes that should be hidden for serialization.
