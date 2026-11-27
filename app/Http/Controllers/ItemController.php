@@ -15,7 +15,7 @@ class ItemController extends Controller
 {
     public function index(Request $request)
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
         $selectedCategory = $request->query('category', 'all');
 
         if (!$group) {
@@ -43,7 +43,7 @@ class ItemController extends Controller
 
     public function create()
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
 
         if (!$group) {
             $categories = collect();
@@ -71,8 +71,8 @@ class ItemController extends Controller
             'stock_quantity' => 'nullable|integer|min:0',
         ])->validate();
 
-        $group = Group::first();
-        $user = User::first();
+        $group = $this->currentGroup();
+        $user = $this->currentUser();
 
         $isRecurring = $request->boolean('is_recurring', true);
         $cycleDays = $request->input('purchase_cycle_days', 30);

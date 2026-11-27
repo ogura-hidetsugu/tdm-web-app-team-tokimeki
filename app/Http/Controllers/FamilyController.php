@@ -15,7 +15,7 @@ class FamilyController extends Controller
 {
     public function index()
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
 
         if (!$group) {
             $members = collect();
@@ -69,7 +69,7 @@ class FamilyController extends Controller
             'role' => 'nullable|string|in:admin,member',
         ])->validate();
 
-        $group = Group::first();
+        $group = $this->currentGroup();
         $name = $request->input('display_name');
 
         // ダミーメールアドレスでユーザーを作成
@@ -94,7 +94,7 @@ class FamilyController extends Controller
     public function postReaction(Request $request)
     {
         $reaction = $request->input('reaction', 'bought'); // 'bought' = 買ったよ！, 'used' = 使ったよ！, 'thanks' = ありがとう！
-        $group = Group::first();
+        $group = $this->currentGroup();
 
         $messages = [
             'bought' => '「買ったよ！」と家族に通知を送りました！🛒✨',

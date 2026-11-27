@@ -179,10 +179,19 @@
                     <!-- 家族グループ表示 (PCのみ) -->
                     <div class="hidden lg:flex items-center gap-2 bg-[#EAF2FC] px-3.5 py-1.5 rounded-full border border-blue-200/80 whitespace-nowrap">
                         <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></span>
-                        <span class="text-xs font-bold text-brand-blue font-rounded">ときめきファミリー</span>
+                        <span class="text-xs font-bold text-brand-blue font-rounded">{{ $headerGroupName ?? 'ときめきファミリー' }}</span>
                         <span class="text-slate-300">|</span>
-                        <span class="text-xs font-bold text-[#44566C]">きょうか</span>
+                        <span class="text-xs font-bold text-[#44566C]">{{ $headerUserName ?? 'ゲスト' }}</span>
                     </div>
+
+                    @auth
+                        <form method="POST" action="{{ route('logout') }}" class="hidden md:block">
+                            @csrf
+                            <button type="submit" class="px-3 py-2 rounded-2xl border border-blue-100 bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-500 text-xs font-bold text-slate-500 transition shadow-sm whitespace-nowrap cursor-pointer font-rounded" title="ログアウト">
+                                ログアウト
+                            </button>
+                        </form>
+                    @endauth
 
                     <!-- ベルマーク（通知・少なくなった商品お知らせ ＆ ドロップダウン） -->
                     <div class="relative" id="notification-wrapper">
@@ -281,9 +290,9 @@
             <div class="flex items-center justify-between p-3 rounded-2xl bg-[#F2F7FD] border border-blue-100 mb-3">
                 <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></span>
-                    <span class="text-xs font-bold text-brand-blue font-rounded">ときめきファミリー</span>
+                    <span class="text-xs font-bold text-brand-blue font-rounded">{{ $headerGroupName ?? 'ときめきファミリー' }}</span>
                 </div>
-                <span class="text-xs font-bold text-[#44566C]">きょうか (わたし)</span>
+                <span class="text-xs font-bold text-[#44566C]">{{ $headerUserName ?? 'ゲスト' }}</span>
             </div>
 
             <!-- スマホ用メニューリンク一覧 -->
@@ -338,9 +347,17 @@
                 </a>
             </div>
 
-            <!-- くまのワンポイントイラスト -->
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
+            <!-- くまのワンポイントイラスト ＆ ログアウト -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs font-bold text-slate-400">
                 <span>🐻 くらすとでスマートにお買い物♪</span>
+                @auth
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="px-3 py-1.5 rounded-xl bg-red-50 text-red-500 border border-red-100 font-bold text-xs cursor-pointer">
+                            ログアウト
+                        </button>
+                    </form>
+                @endauth
             </div>
 
         </div>

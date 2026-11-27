@@ -15,7 +15,7 @@ class ShoppingController extends Controller
 {
     public function index(Request $request)
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
 
         $selectedStore = $request->query('store', 'all');
         $sortByStore = $request->boolean('sort_by_store', false);
@@ -76,7 +76,7 @@ class ShoppingController extends Controller
 
     public function create()
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
 
         if (!$group) {
             $stores = collect();
@@ -107,12 +107,12 @@ class ShoppingController extends Controller
             'memo' => 'nullable|string|max:255',
         ])->validate();
 
-        $group = Group::first();
+        $group = $this->currentGroup();
         if (!$group) {
             $group = Group::create(['name' => 'ときめきファミリー']);
         }
 
-        $user = User::first();
+        $user = $this->currentUser();
         if (!$user) {
             $user = User::create([
                 'display_name' => 'きょうか (わたし)',
@@ -148,7 +148,7 @@ class ShoppingController extends Controller
     public function toggle($id)
     {
         $entry = ShoppingEntry::findOrFail($id);
-        $user = User::first();
+        $user = $this->currentUser();
 
         if ($entry->status === '未購入') {
             $entry->status = '購入済';
