@@ -3,21 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use App\Models\Group;
 use App\Models\Item;
 use App\Models\Membership;
 use App\Models\ShoppingEntry;
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Models\Store;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        $group = $this->currentGroup();
-        if (!$group) {
-            return redirect()->route('shopping.index');
-        }
+        $group = $this->ensureCurrentGroup();
 
         // おうちの在庫数
         $stockCount = Item::where('group_id', $group->id)->whereNull('archived_at')->count();
@@ -35,20 +30,28 @@ class HomeController extends Controller
             }])
             ->get();
 
-        // そろそろなくなるアラート品 (在庫が少なくなっている、またはたまご)
+        // 購入先店舗一覧（クイック追加用）
+        $stores = Store::where('group_id', $group->id)
+            ->orderBy('sort_order')
+            ->get();
+
+        // そろそろなくなるアラート品 (在庫が少なくなっているもの優先)
         $alertItem = Item::where('group_id', $group->id)
             ->whereNull('archived_at')
             ->where(function ($q) {
-                $q->where('name', 'like', '%たまご%')
-                  ->orWhere('name', 'like', '%卵%')
-                  ->orWhereColumn('stock_quantity', '<=', 'reorder_level');
+                $q->whereColumn('stock_quantity', '<=', 'reorder_level')
+                  ->orWhere('stock_quantity', '<=', 1);
             })
+            ->orderBy('stock_quantity', 'asc')
             ->first();
 
-        // 次回の買い替え予定品 (牛乳または定期購入品)
+        // 次回の買い替え予定品 (定期購入品の中で残り日数が一番短いもの)
         $upcomingItem = Item::where('group_id', $group->id)
             ->whereNull('archived_at')
             ->where('is_recurring', true)
+            ->whereNotNull('purchase_cycle_days')
+            ->get()
+            ->sortBy(fn ($item) => $item->days_until_next_purchase ?? 999)
             ->first();
 
         // 最近の買い物リスト（プレビュー用）
@@ -68,6 +71,7 @@ class HomeController extends Controller
             'stockCount',
             'shoppingCount',
             'categories',
+            'stores',
             'alertItem',
             'upcomingItem',
             'recentShoppingEntries',

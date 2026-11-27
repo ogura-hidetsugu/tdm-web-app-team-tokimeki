@@ -155,9 +155,17 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-2 font-rounded">購入先を選択</label>
                     <div class="grid grid-cols-4 gap-2">
+                        @php
+                            $hasDefaultPharmacy = $stores->contains('name', '薬局');
+                        @endphp
                         @foreach($stores as $st)
+                            @php
+                                $isChecked = old('store_id')
+                                    ? (string) old('store_id') === (string) $st->id
+                                    : ($hasDefaultPharmacy ? $st->name === '薬局' : $loop->first);
+                            @endphp
                             <label class="cursor-pointer">
-                                <input type="radio" name="store_id" value="{{ $st->id }}" class="peer sr-only" {{ $st->name === '薬局' ? 'checked' : '' }}>
+                                <input type="radio" name="store_id" value="{{ $st->id }}" class="peer sr-only" {{ $isChecked ? 'checked' : '' }}>
                                 <div class="py-2.5 px-2 text-center rounded-2xl border border-blue-100 text-xs font-bold font-rounded text-slate-600 peer-checked:bg-brand-blue peer-checked:text-white peer-checked:border-brand-blue transition hover:bg-blue-50/50">
                                     {{ $st->name }}
                                 </div>
@@ -170,10 +178,10 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1.5 font-rounded">品名 <span class="text-red-400">*</span></label>
                     <div class="relative">
-                        <input type="text" name="name" id="item-name-input" required placeholder="追加する品名（例: 牛乳、たまご、洗剤）" autofocus class="w-full pl-4 pr-12 py-3.5 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 font-rounded text-[#2C3E50]">
+                        <input type="text" name="name" id="item-name-input" value="{{ old('name') }}" required placeholder="追加する品名（例: 牛乳、たまご、洗剤）" autofocus class="w-full pl-4 pr-12 py-3.5 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 font-rounded text-[#2C3E50]">
                         
                         <!-- マイクアイコン (画像2) -->
-                        <button type="button" onclick="alert('音声入力が利用可能です（マイクをオンにしてください）')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-blue transition" title="音声入力">
+                        <button type="button" id="voice-input-btn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-blue transition" title="音声入力">
                             <svg class="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -192,8 +200,8 @@
                             ＋メモを追加
                         </button>
                     </div>
-                    <div id="memo-box" class="hidden">
-                        <input type="text" name="memo" placeholder="例: 特売なら2つ、無調整" class="w-full px-4 py-3 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue font-rounded">
+                    <div id="memo-box" class="{{ old('memo') ? '' : 'hidden' }}">
+                        <input type="text" name="memo" value="{{ old('memo') }}" placeholder="例: 特売なら2つ、無調整" class="w-full px-4 py-3 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue font-rounded">
                     </div>
                 </div>
 
@@ -220,4 +228,36 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const voiceBtn = document.getElementById('voice-input-btn');
+    const nameInput = document.getElementById('item-name-input');
+
+    if (voiceBtn && nameInput) {
+        voiceBtn.addEventListener('click', function () {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('このブラウザは音声入力に対応していません。キーボード入力をご利用ください。');
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+            voiceBtn.classList.add('text-brand-coral', 'animate-pulse');
+            recognition.onresult = function (event) {
+                if (event.results[0] && event.results[0][0]) {
+                    nameInput.value = event.results[0][0].transcript;
+                }
+            };
+            recognition.onend = function () {
+                voiceBtn.classList.remove('text-brand-coral', 'animate-pulse');
+            };
+            recognition.onerror = function () {
+                voiceBtn.classList.remove('text-brand-coral', 'animate-pulse');
+            };
+            recognition.start();
+        });
+    }
+});
+</script>
 @endsection

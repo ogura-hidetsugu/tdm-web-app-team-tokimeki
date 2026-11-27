@@ -363,7 +363,7 @@
         </div>
     </header>
 
-    <!-- フラッシュメッセージ通知 -->
+    <!-- フラッシュメッセージ通知・エラー通知 -->
     @if(session('success'))
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 z-40">
             <div class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-5 py-3.5 rounded-2xl shadow-lg flex items-center justify-between gap-3 animate-bounce-once">
@@ -372,6 +372,22 @@
                     <span class="font-bold font-rounded text-sm">{{ session('success') }}</span>
                 </div>
                 <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white text-lg font-bold">×</button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('error') || $errors->any())
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 z-40">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-3.5 rounded-2xl shadow-sm flex items-start justify-between gap-3 font-rounded text-sm font-bold">
+                <div class="space-y-1">
+                    @if(session('error'))
+                        <p>⚠️ {{ session('error') }}</p>
+                    @endif
+                    @foreach($errors->all() as $error)
+                        <p>⚠️ {{ $error }}</p>
+                    @endforeach
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-lg font-bold">×</button>
             </div>
         </div>
     @endif

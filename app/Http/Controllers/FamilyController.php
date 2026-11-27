@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Group;
 use App\Models\Membership;
 use App\Models\ShoppingEntry;
 use App\Models\User;
@@ -15,15 +14,7 @@ class FamilyController extends Controller
 {
     public function index()
     {
-        $group = $this->currentGroup();
-
-        if (!$group) {
-            $members = collect();
-            $entries = collect();
-            $activities = [];
-            $inviteCode = 'TOKI-DEFAULT';
-            return view('family.index', compact('group', 'members', 'entries', 'activities', 'inviteCode'));
-        }
+        $group = $this->ensureCurrentGroup();
 
         $members = Membership::where('group_id', $group->id)->with('user')->get();
 
@@ -56,7 +47,7 @@ class FamilyController extends Controller
             }
         }
 
-        // 招待コード（グループごとに固定または生成）
+        // 招待コード（グループごとに固定生成）
         $inviteCode = 'TOKI-' . strtoupper(substr(md5($group->id . 'tokimeki'), 0, 6));
 
         return view('family.index', compact('group', 'members', 'entries', 'activities', 'inviteCode'));
@@ -67,17 +58,19 @@ class FamilyController extends Controller
         Validator::make($request->all(), [
             'display_name' => 'required|string|max:50',
             'role' => 'nullable|string|in:admin,member',
+        ], [
+            'display_name.required' => 'メンバーの呼び名を入力してください。',
+            'display_name.max' => '呼び名は50文字以内で入力してください。',
         ])->validate();
 
-        $group = $this->currentGroup();
-        $name = $request->input('display_name');
+        $group = $this->ensureCurrentGroup();
+        $name = trim((string) $request->input('display_name'));
 
-        // ダミーメールアドレスでユーザーを作成
-        $email = 'family_' . Str::random(6) . '@tokimeki.local';
+        $email = 'family_' . Str::lower(Str::random(10)) . '@tokimeki.local';
         $user = User::create([
             'display_name' => $name,
             'email' => $email,
-            'password' => Hash::make('password'),
+            'password' => Hash::make(Str::random(24)),
             'is_active' => true,
         ]);
 
@@ -93,8 +86,8 @@ class FamilyController extends Controller
 
     public function postReaction(Request $request)
     {
-        $reaction = $request->input('reaction', 'bought'); // 'bought' = 買ったよ！, 'used' = 使ったよ！, 'thanks' = ありがとう！
-        $group = $this->currentGroup();
+        $reaction = $request->input('reaction', 'bought');
+        $this->ensureCurrentGroup();
 
         $messages = [
             'bought' => '「買ったよ！」と家族に通知を送りました！🛒✨',
