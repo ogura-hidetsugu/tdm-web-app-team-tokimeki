@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Models\Group;
 use App\Models\Item;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,10 +26,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('*', function ($view) {
+            $user = Auth::user();
+            $headerUserName = $user
+                ? ($user->display_name ?: Str::before($user->email, '@'))
+                : 'ゲスト';
+            $headerGroupName = 'マイホーム';
+
             try {
                 if (Schema::hasTable('items') && Schema::hasTable('groups')) {
-                    $group = Group::first();
+                    $group = $user ? ($user->primaryGroup() ?? Group::first()) : null;
                     if ($group) {
+                        $headerGroupName = $group->name;
+
                         // 在庫が少なくなった商品
                         $lowStockItems = Item::where('group_id', $group->id)
                             ->whereNull('archived_at')
@@ -55,6 +65,8 @@ class AppServiceProvider extends ServiceProvider
                         $view->with('headerLowStockItems', $lowStockItems);
                         $view->with('headerCycleItems', $cycleItems);
                         $view->with('headerNotificationCount', $totalCount);
+                        $view->with('headerGroupName', $headerGroupName);
+                        $view->with('headerUserName', $headerUserName);
                         return;
                     }
                 }
@@ -64,7 +76,9 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('headerLowStockItems', collect([]));
             $view->with('headerCycleItems', collect([]));
-            $view->with('headerNotificationCount', 3);
+            $view->with('headerNotificationCount', 0);
+            $view->with('headerGroupName', $headerGroupName);
+            $view->with('headerUserName', $headerUserName);
         });
     }
 }

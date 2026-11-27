@@ -36,6 +36,18 @@ class User extends Authenticatable
     }
 
     /**
+     * ユーザーが所属する代表グループを取得する。
+     */
+    public function primaryGroup(): ?Group
+    {
+        return $this->groups()
+            ->wherePivot('is_active', true)
+            ->orderBy('groups.id')
+            ->first()
+            ?? $this->groups()->orderBy('groups.id')->first();
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

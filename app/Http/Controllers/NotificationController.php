@@ -13,7 +13,7 @@ class NotificationController extends Controller
 {
     public function index()
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
         if (!$group) {
             return redirect()->route('home');
         }
@@ -42,7 +42,7 @@ class NotificationController extends Controller
             ->values();
 
         // 3. 通知設定（ユーザーの設定）
-        $user = User::first();
+        $user = $this->currentUser();
         $settings = [
             'notify_days_before' => 3, // 3日前に通知
             'auto_add_shopping' => false, // 自動追加
@@ -58,8 +58,8 @@ class NotificationController extends Controller
     public function addToList(Request $request, $itemId)
     {
         $item = Item::findOrFail($itemId);
-        $group = Group::first();
-        $user = User::first();
+        $group = $this->currentGroup();
+        $user = $this->currentUser();
 
         // 既に買い物リストにあるか確認
         $existing = ShoppingEntry::where('group_id', $group->id)

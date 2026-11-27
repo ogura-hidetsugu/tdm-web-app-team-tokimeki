@@ -14,7 +14,7 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $group = Group::first();
+        $group = $this->currentGroup();
         if (!$group) {
             return redirect()->route('shopping.index');
         }
