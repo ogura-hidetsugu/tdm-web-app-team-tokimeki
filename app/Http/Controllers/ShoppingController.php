@@ -2,37 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Group;
-use App\Models\Item;
 use App\Models\ShoppingEntry;
 use App\Models\Store;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class ShoppingController extends Controller
 {
     public function index(Request $request)
     {
-        $group = $this->currentGroup();
+        $group = $this->ensureCurrentGroup();
 
         $selectedStore = $request->query('store', 'all');
         $sortByStore = $request->boolean('sort_by_store', false);
 
-        if (!$group) {
-            $stores = collect();
-            $items = collect();
-            $purchasedItems = collect();
-            $counts = ['all' => 0];
-
-            return view('shopping.index', compact('items', 'purchasedItems', 'stores', 'selectedStore', 'sortByStore', 'counts', 'group'));
-        }
-
         $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
 
-        $query = ShoppingEntry::where('group_id', $group->id)
-            ->where('status', '未購入')
+        $query = ShoppingEntry::where('shopping_entries.group_id', $group->id)
+            ->where('shopping_entries.status', '未購入')
             ->with(['store', 'addedBy']);
 
         if ($selectedStore !== 'all') {
@@ -42,12 +29,12 @@ class ShoppingController extends Controller
         }
 
         if ($sortByStore) {
-            $query->join('stores', 'shopping_entries.store_id', '=', 'stores.id')
-                  ->orderBy('stores.sort_order')
+            $query->leftJoin('stores', 'shopping_entries.store_id', '=', 'stores.id')
+                  ->orderByRaw('COALESCE(stores.sort_order, 999999) asc')
                   ->orderBy('shopping_entries.id', 'desc')
                   ->select('shopping_entries.*');
         } else {
-            $query->orderBy('sort_order')->orderBy('id', 'asc');
+            $query->orderBy('shopping_entries.sort_order')->orderBy('shopping_entries.id', 'asc');
         }
 
         $items = $query->get();
@@ -76,25 +63,17 @@ class ShoppingController extends Controller
 
     public function create()
     {
-        $group = $this->currentGroup();
-
-        if (!$group) {
-            $stores = collect();
-            $entries = collect();
-            $addedCount = 0;
-
-            return view('shopping.create', compact('entries', 'stores', 'addedCount', 'group'));
-        }
+        $group = $this->ensureCurrentGroup();
 
         $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
 
-        // 現在登録されている未購入品一覧（画像2の上部リスト）
         $entries = ShoppingEntry::where('group_id', $group->id)
+            ->where('status', '未購入')
             ->with('store')
             ->orderBy('id', 'desc')
             ->get();
 
-        $addedCount = $entries->where('status', '未購入')->count();
+        $addedCount = $entries->count();
 
         return view('shopping.create', compact('entries', 'stores', 'addedCount', 'group'));
     }
@@ -105,24 +84,19 @@ class ShoppingController extends Controller
             'name' => 'required|string|max:100',
             'store_id' => 'nullable|exists:stores,id',
             'memo' => 'nullable|string|max:255',
+        ], [
+            'name.required' => '品名を入力してください。',
+            'name.max' => '品名は100文字以内で入力してください。',
         ])->validate();
 
-        $group = $this->currentGroup();
-        if (!$group) {
-            $group = Group::create(['name' => 'ときめきファミリー']);
-        }
-
+        $group = $this->ensureCurrentGroup();
         $user = $this->currentUser();
-        if (!$user) {
-            $user = User::create([
-                'display_name' => 'きょうか (わたし)',
-                'email' => 'me@tokimeki.local',
-                'password' => Hash::make('password'),
-            ]);
-        }
 
-        // store_idが未指定の場合は「未設定」店舗を探す
+        // 自グループの店舗であることを保証（未指定・他グループなら「未設定」店舗）
         $storeId = $request->input('store_id');
+        if ($storeId && ! Store::where('group_id', $group->id)->where('id', $storeId)->exists()) {
+            $storeId = null;
+        }
         if (!$storeId) {
             $defaultStore = Store::where('group_id', $group->id)->where('name', '未設定')->first();
             $storeId = $defaultStore ? $defaultStore->id : null;
@@ -138,6 +112,9 @@ class ShoppingController extends Controller
         ]);
 
         $redirect = $request->input('redirect_to', 'create');
+        if ($redirect === 'home') {
+            return redirect()->route('home')->with('success', '買い物リストに「' . $request->input('name') . '」を追加しました！');
+        }
         if ($redirect === 'index') {
             return redirect()->route('shopping.index')->with('success', '買い物リストに「' . $request->input('name') . '」を追加しました！');
         }
@@ -147,7 +124,8 @@ class ShoppingController extends Controller
 
     public function toggle($id)
     {
-        $entry = ShoppingEntry::findOrFail($id);
+        $group = $this->ensureCurrentGroup();
+        $entry = ShoppingEntry::where('group_id', $group->id)->findOrFail($id);
         $user = $this->currentUser();
 
         if ($entry->status === '未購入') {
@@ -168,7 +146,8 @@ class ShoppingController extends Controller
 
     public function destroy($id)
     {
-        $entry = ShoppingEntry::findOrFail($id);
+        $group = $this->ensureCurrentGroup();
+        $entry = ShoppingEntry::where('group_id', $group->id)->findOrFail($id);
         $name = $entry->name;
         $entry->delete();
 

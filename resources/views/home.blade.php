@@ -78,12 +78,21 @@
                                 </svg>
                             </div>
                             <div>
-                                <span class="text-xs text-red-500 font-extrabold flex items-center gap-1">
-                                    <span>⚠️</span> 在庫お知らせ
-                                </span>
-                                <span class="text-sm font-extrabold text-[#475E7B] font-rounded">
-                                    そろそろ <span class="text-brand-blue">{{ $alertItem ? $alertItem->name : 'たまご' }}</span> がなくなるよ！
-                                </span>
+                                @if($alertItem)
+                                    <span class="text-xs text-red-500 font-extrabold flex items-center gap-1">
+                                        <span>⚠️</span> 在庫お知らせ
+                                    </span>
+                                    <span class="text-sm font-extrabold text-[#475E7B] font-rounded">
+                                        そろそろ <span class="text-brand-blue">{{ $alertItem->name }}</span> がなくなるよ！
+                                    </span>
+                                @else
+                                    <span class="text-xs text-brand-blue font-extrabold flex items-center gap-1">
+                                        <span>✨</span> 在庫チェック
+                                    </span>
+                                    <span class="text-sm font-extrabold text-[#475E7B] font-rounded">
+                                        おうちの在庫は安心だよ♪
+                                    </span>
+                                @endif
                             </div>
                             <!-- 吹き出しのしっぽ -->
                             <div class="absolute top-1/2 -left-2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[8px] border-r-white"></div>
@@ -345,12 +354,18 @@
                         </div>
                         <div>
                             <span class="text-xs font-bold text-slate-400 block font-rounded">次回の買い替え予定</span>
-                            <div class="text-lg font-bold text-[#33465E] font-rounded flex items-baseline gap-2 mt-0.5">
-                                <span class="text-brand-blue font-black text-xl">{{ $upcomingItem ? $upcomingItem->name : '牛乳' }}</span>
-                                <span>あと</span>
-                                <span class="text-3xl font-black text-brand-blue leading-none">3</span>
-                                <span>日</span>
-                            </div>
+                            @if($upcomingItem)
+                                <div class="text-lg font-bold text-[#33465E] font-rounded flex items-baseline gap-2 mt-0.5">
+                                    <span class="text-brand-blue font-black text-xl">{{ $upcomingItem->name }}</span>
+                                    <span>あと</span>
+                                    <span class="text-3xl font-black text-brand-blue leading-none">{{ $upcomingItem->days_until_next_purchase ?? 3 }}</span>
+                                    <span>日</span>
+                                </div>
+                            @else
+                                <div class="text-sm font-bold text-[#33465E] font-rounded mt-1">
+                                    定期購入を登録すると予定をお知らせします♪
+                                </div>
+                            @endif
                         </div>
                         <div class="text-brand-blue/60 ml-2 group-hover:translate-x-1 transition-transform">
                             <svg class="w-5 h-5 stroke-[2.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -427,10 +442,9 @@
 
                     <div class="flex gap-2">
                         <select name="store_id" class="px-3 py-2.5 rounded-2xl border border-blue-200 text-xs text-slate-600 bg-white focus:outline-none focus:border-brand-blue font-rounded flex-1">
-                            <option value="">購入先：未設定</option>
-                            <option value="2">スーパー</option>
-                            <option value="3">薬局</option>
-                            <option value="4">Amazon</option>
+                            @foreach($stores as $st)
+                                <option value="{{ $st->id }}">{{ $st->name === '未設定' ? '購入先：未設定' : $st->name }}</option>
+                            @endforeach
                         </select>
                         <button type="submit" class="pressable bg-brand-blue text-white px-5 py-2.5 rounded-2xl text-xs font-extrabold font-rounded shadow-btn-blue hover:bg-brand-blueDark transition flex items-center gap-1">
                             <span>＋</span> 追加

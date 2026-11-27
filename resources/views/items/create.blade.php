@@ -48,7 +48,7 @@
                     <span class="text-[11px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">必須</span>
                 </label>
             </div>
-            <input type="text" name="name" required placeholder="富士清水 バナジウム＆シリカ天然水" class="w-full px-5 py-3.5 rounded-2xl border border-blue-200 text-base focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 font-rounded text-[#2C3E50]">
+            <input type="text" name="name" value="{{ old('name') }}" required placeholder="富士清水 バナジウム＆シリカ天然水" class="w-full px-5 py-3.5 rounded-2xl border border-blue-200 text-base focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 font-rounded text-[#2C3E50]">
         </div>
 
 
@@ -87,7 +87,7 @@
                 
                 <!-- 選択肢1: 切り抜き -->
                 <label class="cursor-pointer">
-                    <input type="radio" name="photo_display" value="cutout" checked class="peer sr-only">
+                    <input type="radio" name="photo_display" value="cutout" {{ old('photo_display', 'cutout') === 'cutout' ? 'checked' : '' }} class="peer sr-only">
                     <div class="p-4 rounded-3xl border-2 border-slate-200 peer-checked:border-brand-blue peer-checked:bg-blue-50/50 flex flex-col items-center justify-center gap-3 transition">
                         <div class="relative w-32 h-32 rounded-2xl bg-white border border-blue-100 flex items-center justify-center p-2 shadow-sm overflow-hidden">
                             <!-- プレビュー画像（デフォルトまたは撮影画像） -->
@@ -106,7 +106,7 @@
 
                 <!-- 選択肢2: 元の写真 -->
                 <label class="cursor-pointer">
-                    <input type="radio" name="photo_display" value="original" class="peer sr-only">
+                    <input type="radio" name="photo_display" value="original" {{ old('photo_display') === 'original' ? 'checked' : '' }} class="peer sr-only">
                     <div class="p-4 rounded-3xl border-2 border-slate-200 peer-checked:border-brand-blue peer-checked:bg-blue-50/50 flex flex-col items-center justify-center gap-3 transition">
                         <div class="relative w-32 h-32 rounded-2xl bg-amber-50/60 border border-amber-200 flex items-center justify-center p-2 shadow-sm overflow-hidden">
                             <!-- プレビュー画像 -->
@@ -140,7 +140,7 @@
                 <select name="category_id" class="w-full px-4 py-3.5 rounded-2xl border border-blue-200 text-sm text-[#44566C] bg-white focus:outline-none focus:border-brand-blue font-rounded">
                     <option value="">カテゴリーを選択（任意）</option>
                     @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        <option value="{{ $cat->id }}" {{ (string) old('category_id') === (string) $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -153,7 +153,7 @@
                 <div class="grid grid-cols-4 gap-2">
                     @foreach($stores as $st)
                         <label class="cursor-pointer">
-                            <input type="radio" name="default_store_id" value="{{ $st->id }}" class="peer sr-only" {{ $st->name === '未設定' ? 'checked' : '' }}>
+                            <input type="radio" name="default_store_id" value="{{ $st->id }}" class="peer sr-only" {{ (old('default_store_id') ? (string) old('default_store_id') === (string) $st->id : $st->name === '未設定') ? 'checked' : '' }}>
                             <div class="py-2.5 px-2 text-center rounded-2xl border border-blue-100 text-xs font-bold font-rounded text-slate-600 peer-checked:bg-brand-blue peer-checked:text-white peer-checked:border-brand-blue transition hover:bg-blue-50/50">
                                 {{ $st->name }}
                             </div>
@@ -174,7 +174,7 @@
                 </label>
                 <span class="text-slate-400 text-sm">📝</span>
             </div>
-            <input type="text" name="memo" placeholder="例：特売なら2つ、無香料" class="w-full px-5 py-3.5 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue font-rounded text-[#2C3E50]">
+            <input type="text" name="memo" value="{{ old('memo') }}" placeholder="例：特売なら2つ、無香料" class="w-full px-5 py-3.5 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue font-rounded text-[#2C3E50]">
         </div>
 
 
@@ -203,7 +203,7 @@
 
                 <!-- 日数入力 -->
                 <div class="flex items-center gap-2">
-                    <input type="number" name="purchase_cycle_days" value="30" min="1" max="365" class="w-24 px-4 py-3 rounded-2xl bg-white border border-blue-200 text-center text-xl font-black text-brand-blue font-rounded focus:outline-none focus:border-brand-blue">
+                    <input type="number" name="purchase_cycle_days" value="{{ old('purchase_cycle_days', 30) }}" min="1" max="365" class="w-24 px-4 py-3 rounded-2xl bg-white border border-blue-200 text-center text-xl font-black text-brand-blue font-rounded focus:outline-none focus:border-brand-blue">
                     <span class="font-extrabold text-sm text-[#33465E] font-rounded">日ごと</span>
                 </div>
             </div>
@@ -228,20 +228,20 @@
             </div>
             <div class="relative">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔗</span>
-                <input type="url" name="product_url" placeholder="https://" class="w-full pl-11 pr-5 py-3.5 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue font-rounded text-[#2C3E50]">
+                <input type="url" name="product_url" value="{{ old('product_url') }}" placeholder="https://" class="w-full pl-11 pr-5 py-3.5 rounded-2xl border border-blue-200 text-sm focus:outline-none focus:border-brand-blue font-rounded text-[#2C3E50]">
             </div>
 
             <!-- 外部ストア検索ボタン -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <a href="https://www.amazon.co.jp" target="_blank" class="p-3 rounded-2xl border border-amber-200 bg-amber-50/40 hover:bg-amber-100/50 flex items-center justify-center gap-2 text-xs font-bold text-amber-900 transition font-rounded">
+                <a href="https://www.amazon.co.jp" target="_blank" rel="noopener noreferrer" class="p-3 rounded-2xl border border-amber-200 bg-amber-50/40 hover:bg-amber-100/50 flex items-center justify-center gap-2 text-xs font-bold text-amber-900 transition font-rounded">
                     <span class="font-black text-amber-600 text-sm">a</span> Amazonで探す ↗
                 </a>
-                <a href="https://www.rakuten.co.jp" target="_blank" class="p-3 rounded-2xl border border-red-200 bg-red-50/40 hover:bg-red-100/50 flex items-center justify-center gap-2 text-xs font-bold text-red-900 transition font-rounded">
+                <a href="https://www.rakuten.co.jp" target="_blank" rel="noopener noreferrer" class="p-3 rounded-2xl border border-red-200 bg-red-50/40 hover:bg-red-100/50 flex items-center justify-center gap-2 text-xs font-bold text-red-900 transition font-rounded">
                     <span class="font-black text-red-600 text-sm">R</span> 楽天で探す ↗
                 </a>
             </div>
             <div class="text-center pt-1">
-                <a href="#other" class="text-xs font-bold text-slate-400 hover:text-slate-600 font-rounded">
+                <a href="https://shopping.yahoo.co.jp" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-slate-400 hover:text-slate-600 font-rounded">
                     ほかの店で探す ＞
                 </a>
             </div>
@@ -250,7 +250,7 @@
 
         <!-- 7. 同時に買い物リストにも追加するオプション -->
         <div class="bg-blue-50/30 p-4 rounded-2xl border border-blue-100 flex items-center gap-3">
-            <input type="checkbox" name="add_to_shopping_list" id="add-to-shopping" value="1" class="w-5 h-5 rounded-lg text-brand-blue border-blue-300 focus:ring-brand-blue">
+            <input type="checkbox" name="add_to_shopping_list" id="add-to-shopping" value="1" {{ old('add_to_shopping_list') ? 'checked' : '' }} class="w-5 h-5 rounded-lg text-brand-blue border-blue-300 focus:ring-brand-blue">
             <label for="add-to-shopping" class="text-xs font-bold text-[#33465E] font-rounded cursor-pointer select-none">
                 同時に「買い物リスト」にも追加する
             </label>
@@ -472,17 +472,27 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ファイル選択時
+    // ファイル選択時（最大800pxにリサイズしてDataURL化）
     if (fileInput) {
         fileInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    applyPhoto(event.target.result);
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = new Image();
+                img.onload = function () {
+                    const maxSize = 800;
+                    const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+                    canvas.width = Math.round(img.width * scale);
+                    canvas.height = Math.round(img.height * scale);
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    applyPhoto(canvas.toDataURL('image/jpeg', 0.85));
                 };
-                reader.readAsDataURL(file);
-            }
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
     }
 

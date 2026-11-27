@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
 use App\Models\Group;
 use App\Models\Membership;
-use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,23 +15,6 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    private const DEFAULT_STORES = [
-        ['name' => '未設定', 'kind' => 'other', 'sort_order' => 0],
-        ['name' => 'スーパー', 'kind' => 'supermarket', 'sort_order' => 1],
-        ['name' => '薬局', 'kind' => 'drugstore', 'sort_order' => 2],
-        ['name' => 'Amazon', 'kind' => 'online', 'sort_order' => 3],
-    ];
-
-    private const DEFAULT_CATEGORIES = [
-        ['name' => '食品', 'icon' => 'canned', 'sort_order' => 1],
-        ['name' => '飲み物', 'icon' => 'bottle', 'sort_order' => 2],
-        ['name' => '日用品', 'icon' => 'pump', 'sort_order' => 3],
-        ['name' => '消耗品', 'icon' => 'tissue', 'sort_order' => 4],
-        ['name' => 'コスメ', 'icon' => 'cosme', 'sort_order' => 5],
-        ['name' => '薬・サプリ', 'icon' => 'pill', 'sort_order' => 6],
-        ['name' => 'その他', 'icon' => 'box', 'sort_order' => 7],
-    ];
-
     /**
      * ログイン画面を表示する。
      */
@@ -47,6 +28,10 @@ class AuthController extends Controller
      */
     public function login(Request $request): RedirectResponse
     {
+        $request->merge([
+            'email' => trim((string) $request->input('email')),
+        ]);
+
         $credentials = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -86,6 +71,10 @@ class AuthController extends Controller
      */
     public function register(Request $request): RedirectResponse
     {
+        $request->merge([
+            'email' => trim((string) $request->input('email')),
+        ]);
+
         $validated = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -101,16 +90,17 @@ class AuthController extends Controller
 
         $user = DB::transaction(function () use ($validated) {
             $displayName = Str::limit(Str::before($validated['email'], '@'), 50, '');
+            $resolvedName = $displayName !== '' ? $displayName : 'ユーザー';
 
             $user = User::create([
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'display_name' => $displayName !== '' ? $displayName : 'ユーザー',
+                'display_name' => $resolvedName,
                 'is_active' => true,
             ]);
 
             $group = Group::create([
-                'name' => Str::limit($user->display_name . 'のおうち', 80, ''),
+                'name' => Str::limit($resolvedName . 'のおうち', 50, ''),
             ]);
 
             Membership::create([
@@ -120,7 +110,7 @@ class AuthController extends Controller
                 'is_active' => true,
             ]);
 
-            $this->seedInitialGroupResources($group);
+            $group->seedDefaults();
 
             return $user;
         });
@@ -142,29 +132,5 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login')->with('status', 'ログアウトしました。');
-    }
-
-    /**
-     * 新規グループ用の初期店舗・初期カテゴリーを作成する。
-     */
-    private function seedInitialGroupResources(Group $group): void
-    {
-        foreach (self::DEFAULT_STORES as $store) {
-            Store::create([
-                'group_id' => $group->id,
-                'name' => $store['name'],
-                'kind' => $store['kind'],
-                'sort_order' => $store['sort_order'],
-            ]);
-        }
-
-        foreach (self::DEFAULT_CATEGORIES as $category) {
-            Category::create([
-                'group_id' => $group->id,
-                'name' => $category['name'],
-                'icon' => $category['icon'],
-                'sort_order' => $category['sort_order'],
-            ]);
-        }
     }
 }

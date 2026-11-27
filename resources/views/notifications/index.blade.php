@@ -240,10 +240,10 @@
                         通知する日数（目安日の何日前）
                     </label>
                     <select name="notify_days_before" class="w-full px-4 py-3 rounded-2xl border border-blue-200 text-sm font-bold text-[#44566C] bg-white focus:outline-none focus:border-brand-blue font-rounded">
-                        <option value="1">1日前（前日）</option>
-                        <option value="3" selected>3日前（おすすめ）</option>
-                        <option value="5">5日前</option>
-                        <option value="7">1週間前</option>
+                        <option value="1" {{ ($settings['notify_days_before'] ?? 3) == 1 ? 'selected' : '' }}>1日前（前日）</option>
+                        <option value="3" {{ ($settings['notify_days_before'] ?? 3) == 3 ? 'selected' : '' }}>3日前（おすすめ）</option>
+                        <option value="5" {{ ($settings['notify_days_before'] ?? 3) == 5 ? 'selected' : '' }}>5日前</option>
+                        <option value="7" {{ ($settings['notify_days_before'] ?? 3) == 7 ? 'selected' : '' }}>1週間前</option>
                     </select>
                 </div>
 
@@ -253,8 +253,8 @@
                         目安日が来たら自動で買い物リストに追加
                     </label>
                     <select name="auto_add_shopping" class="w-full px-4 py-3 rounded-2xl border border-blue-200 text-sm font-bold text-[#44566C] bg-white focus:outline-none focus:border-brand-blue font-rounded">
-                        <option value="0">手動で追加する（通知のみ）</option>
-                        <option value="1">自動で買い物リストに追加する</option>
+                        <option value="0" {{ empty($settings['auto_add_shopping']) ? 'selected' : '' }}>手動で追加する（通知のみ）</option>
+                        <option value="1" {{ !empty($settings['auto_add_shopping']) ? 'selected' : '' }}>自動で買い物リストに追加する</option>
                     </select>
                 </div>
 

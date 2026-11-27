@@ -74,9 +74,17 @@
 
                     <!-- 商品名 ＆ メモ -->
                     <div class="flex items-start gap-3">
+                        @php
+                            $photoRef = $item->photo_display === 'cutout'
+                                ? ($item->photo_cutout_ref ?: $item->photo_original_ref)
+                                : ($item->photo_original_ref ?: $item->photo_cutout_ref);
+                            $photoSrc = $photoRef
+                                ? (\Illuminate\Support\Str::startsWith($photoRef, ['http://', 'https://', 'data:', '/']) ? $photoRef : asset($photoRef))
+                                : null;
+                        @endphp
                         <div class="w-12 h-12 rounded-2xl bg-[#EAF2FC] flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
-                            @if($item->photo_original_ref)
-                                <img src="{{ $item->photo_original_ref }}" alt="{{ $item->name }}" class="w-full h-full object-cover rounded-2xl">
+                            @if($photoSrc)
+                                <img src="{{ $photoSrc }}" alt="{{ $item->name }}" class="w-full h-full object-cover rounded-2xl">
                             @elseif(str_contains($item->name, '水') || str_contains($item->name, '天然水'))
                                 🧴
                             @elseif(str_contains($item->name, '牛乳'))

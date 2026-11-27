@@ -2,27 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppNotification;
 use App\Models\Category;
-use App\Models\Group;
 use App\Models\Item;
 use App\Models\ShoppingEntry;
 use App\Models\Store;
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class ItemController extends Controller
 {
     public function index(Request $request)
     {
-        $group = $this->currentGroup();
+        $group = $this->ensureCurrentGroup();
         $selectedCategory = $request->query('category', 'all');
-
-        if (!$group) {
-            $categories = collect();
-            $items = collect();
-            return view('items.index', compact('items', 'categories', 'selectedCategory', 'group'));
-        }
 
         $categories = Category::where('group_id', $group->id)->orderBy('sort_order')->get();
 
@@ -43,13 +39,7 @@ class ItemController extends Controller
 
     public function create()
     {
-        $group = $this->currentGroup();
-
-        if (!$group) {
-            $categories = collect();
-            $stores = collect();
-            return view('items.create', compact('categories', 'stores', 'group'));
-        }
+        $group = $this->ensureCurrentGroup();
 
         $categories = Category::where('group_id', $group->id)->orderBy('sort_order')->get();
         $stores = Store::where('group_id', $group->id)->orderBy('sort_order')->get();
@@ -65,27 +55,45 @@ class ItemController extends Controller
             'default_store_id' => 'nullable|exists:stores,id',
             'memo' => 'nullable|string|max:1000',
             'photo_display' => 'nullable|string|in:cutout,original',
+            'photo_captured' => 'nullable|string',
             'product_url' => 'nullable|url|max:2048',
             'is_recurring' => 'nullable|boolean',
-            'purchase_cycle_days' => 'nullable|integer|min:1',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'purchase_cycle_days' => 'nullable|integer|min:1|max:365',
+            'stock_quantity' => 'nullable|integer|min:0|max:9999',
+        ], [
+            'name.required' => '商品名を入力してください。',
+            'name.max' => '商品名は100文字以内で入力してください。',
+            'product_url.url' => '商品リンクは有効なURL（https://...）で入力してください。',
+            'purchase_cycle_days.min' => '購入周期は1日以上で入力してください。',
+            'purchase_cycle_days.max' => '購入周期は365日以内で入力してください。',
         ])->validate();
 
-        $group = $this->currentGroup();
+        $group = $this->ensureCurrentGroup();
         $user = $this->currentUser();
+
+        // グループ所有のカテゴリー・店舗であることを保証
+        $categoryId = $request->input('category_id');
+        if ($categoryId && ! Category::where('group_id', $group->id)->where('id', $categoryId)->exists()) {
+            $categoryId = null;
+        }
+
+        $defaultStoreId = $request->input('default_store_id');
+        if ($defaultStoreId && ! Store::where('group_id', $group->id)->where('id', $defaultStoreId)->exists()) {
+            $defaultStoreId = null;
+        }
 
         $isRecurring = $request->boolean('is_recurring', true);
         $cycleDays = $request->input('purchase_cycle_days', 30);
-        $photoRef = $request->input('photo_captured');
+        $photoPath = $this->storeCapturedPhoto($request->input('photo_captured'));
 
         $item = Item::create([
             'group_id' => $group->id,
             'name' => $request->input('name'),
-            'category_id' => $request->input('category_id'),
-            'default_store_id' => $request->input('default_store_id'),
+            'category_id' => $categoryId,
+            'default_store_id' => $defaultStoreId,
             'memo' => $request->input('memo'),
-            'photo_original_ref' => $photoRef,
-            'photo_cutout_ref' => $photoRef,
+            'photo_original_ref' => $photoPath,
+            'photo_cutout_ref' => $photoPath,
             'photo_display' => $request->input('photo_display', 'cutout'),
             'product_url' => $request->input('product_url'),
             'is_recurring' => $isRecurring,
@@ -95,7 +103,6 @@ class ItemController extends Controller
             'created_by_user_id' => $user->id,
         ]);
 
-        // 同時に買い物リストにも追加するか？などのオプションがあれば
         if ($request->boolean('add_to_shopping_list', false)) {
             ShoppingEntry::create([
                 'group_id' => $group->id,
@@ -113,7 +120,9 @@ class ItemController extends Controller
 
     public function updateStock(Request $request, $id)
     {
-        $item = Item::findOrFail($id);
+        $group = $this->ensureCurrentGroup();
+        $item = Item::where('group_id', $group->id)->findOrFail($id);
+
         $change = (int) $request->input('change', 0);
         $newStock = max(0, $item->stock_quantity + $change);
         $item->stock_quantity = $newStock;
@@ -124,10 +133,55 @@ class ItemController extends Controller
 
     public function destroy($id)
     {
-        $item = Item::findOrFail($id);
+        $group = $this->ensureCurrentGroup();
+        $item = Item::where('group_id', $group->id)->findOrFail($id);
         $name = $item->name;
-        $item->delete();
+        $photoRef = $item->photo_original_ref;
+
+        DB::transaction(function () use ($item) {
+            ShoppingEntry::where('item_id', $item->id)->update(['item_id' => null]);
+            AppNotification::where('item_id', $item->id)->delete();
+            DB::table('stock_movements')->where('item_id', $item->id)->update(['item_id' => null]);
+            $item->delete();
+        });
+
+        if ($photoRef && Str::startsWith($photoRef, 'uploads/items/')) {
+            $fullPath = public_path($photoRef);
+            if (File::exists($fullPath)) {
+                File::delete($fullPath);
+            }
+        }
 
         return back()->with('success', "「{$name}」を削除しました。");
+    }
+
+    /**
+     * Base64 DataURL で送信された画像を public/uploads/items 配下へ保存し、DB格納用の相対パスを返す。
+     */
+    private function storeCapturedPhoto(?string $photoInput): ?string
+    {
+        if (! $photoInput) {
+            return null;
+        }
+
+        if (preg_match('/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/i', $photoInput, $matches)) {
+            $ext = strtolower($matches[1]) === 'jpeg' ? 'jpg' : strtolower($matches[1]);
+            $binary = base64_decode($matches[2], true);
+
+            if ($binary === false || strlen($binary) > 5 * 1024 * 1024) {
+                return null;
+            }
+
+            $relativeDir = 'uploads/items';
+            $targetDir = public_path($relativeDir);
+            File::ensureDirectoryExists($targetDir);
+
+            $filename = Str::uuid()->toString() . '.' . $ext;
+            File::put($targetDir . DIRECTORY_SEPARATOR . $filename, $binary);
+
+            return $relativeDir . '/' . $filename;
+        }
+
+        return Str::limit($photoInput, 255, '');
     }
 }
